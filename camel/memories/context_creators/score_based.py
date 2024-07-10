@@ -44,9 +44,9 @@ class ScoreBasedContextCreator(BaseContextCreator):
     """
 
     def __init__(
-        self, token_counter: BaseTokenCounter, token_limit: int
+        self, token_limit: int
     ) -> None:
-        self._token_counter = token_counter
+        self._token_counter = None
         self._token_limit = token_limit
 
     @property
@@ -90,9 +90,7 @@ class ScoreBasedContextCreator(BaseContextCreator):
                     _ContextUnit(
                         idx,
                         record,
-                        self.token_counter.count_tokens_from_messages(
-                            [record.memory_record.to_openai_message()]
-                        ),
+                        100,
                     )
                 )
 
