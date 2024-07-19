@@ -13,7 +13,7 @@
 # =========== Copyright 2023 @ CAMEL-AI.org. All Rights Reserved. ===========
 from typing import Any, Dict, List, Optional, Union
 
-from openai import OpenAI, Stream
+from openai import AsyncOpenAI, Stream, OpenAI
 
 from camel.configs import OPENAI_API_PARAMS
 from camel.messages import OpenAIMessage
@@ -82,6 +82,13 @@ class OpenSourceModel(BaseModelBackend):
             api_key="fake_key",
         )
 
+        self._aclient = AsyncOpenAI(
+            base_url=self.server_url,
+            timeout=60,
+            max_retries=3,
+            api_key="fake_key",
+        )
+
         # Replace `model_config_dict` with only the params to be
         # passed to OpenAI API
         self.model_config_dict = self.model_config_dict["api_params"].__dict__
@@ -115,6 +122,29 @@ class OpenSourceModel(BaseModelBackend):
         """
         messages_openai: List[OpenAIMessage] = messages
         response = self._client.chat.completions.create(
+            messages=messages_openai,
+            model=self.model_name,
+            **self.model_config_dict,
+        )
+        return response
+    
+    async def arun(
+        self,
+        messages: List[OpenAIMessage],
+    ) -> Union[ChatCompletion, Stream[ChatCompletionChunk]]:
+        r"""Runs inference of OpenAI-API-style chat completion.
+
+        Args:
+            messages (List[OpenAIMessage]): Message list with the chat history
+                in OpenAI API format.
+
+        Returns:
+            Union[ChatCompletion, Stream[ChatCompletionChunk]]:
+                `ChatCompletion` in the non-stream mode, or
+                `Stream[ChatCompletionChunk]` in the stream mode.
+        """
+        messages_openai: List[OpenAIMessage] = messages
+        response = await self._aclient.chat.completions.create(
             messages=messages_openai,
             model=self.model_name,
             **self.model_config_dict,
