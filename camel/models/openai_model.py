@@ -14,7 +14,7 @@
 import os
 from typing import Any, Dict, List, Optional, Union
 
-from openai import OpenAI, Stream
+from openai import AsyncOpenAI, Stream, OpenAI
 
 from camel.configs import OPENAI_API_PARAMS
 from camel.messages import OpenAIMessage
@@ -52,6 +52,12 @@ class OpenAIModel(BaseModelBackend):
         self._client = OpenAI(
             timeout=60, max_retries=3, base_url=url, api_key=self._api_key
         )
+        self._aclient = AsyncOpenAI(
+            timeout=60,
+            max_retries=3,
+            base_url=url,
+            api_key=self._api_key
+        )
         self._token_counter: Optional[BaseTokenCounter] = None
 
     @property
@@ -84,6 +90,29 @@ class OpenAIModel(BaseModelBackend):
         """
         response = self._client.chat.completions.create(
             messages=messages,
+            model=self.model_type.value,
+            **self.model_config_dict,
+        )
+        return response
+
+    async def arun(
+        self,
+        messages: List[OpenAIMessage],
+    ) -> Union[ChatCompletion, Stream[ChatCompletionChunk]]:
+        r"""Runs inference of OpenAI-API-style chat completion.
+
+        Args:
+            messages (List[OpenAIMessage]): Message list with the chat history
+                in OpenAI API format.
+
+        Returns:
+            Union[ChatCompletion, Stream[ChatCompletionChunk]]:
+                `ChatCompletion` in the non-stream mode, or
+                `Stream[ChatCompletionChunk]` in the stream mode.
+        """
+        messages_openai: List[OpenAIMessage] = messages
+        response = await self._aclient.chat.completions.create(
+            messages=messages_openai,
             model=self.model_type.value,
             **self.model_config_dict,
         )
